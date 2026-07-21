@@ -42,7 +42,12 @@ struct DoorbellSessionView: View {
                 }
             }
             .sheet(isPresented: $isSettingsPresented) {
-                AISettingsSheetView()
+                AISettingsSheetView(
+                    apiKey: $viewModel.openRouterAPIKey,
+                    message: viewModel.settingsMessage,
+                    onSave: viewModel.saveOpenRouterAPIKey,
+                    onDelete: viewModel.clearOpenRouterAPIKey
+                )
             }
         }
     }
@@ -208,7 +213,7 @@ struct DoorbellSessionView: View {
             }
 
             VStack(spacing: 8) {
-                Text("Apple Intelligence受付中")
+                Text("OpenRouter受付中")
                     .font(.system(size: 34, weight: .bold, design: .rounded))
                     .foregroundStyle(.primary)
                 
@@ -222,6 +227,24 @@ struct DoorbellSessionView: View {
             MicrophoneLevelView(level: viewModel.microphoneLevel)
                 .signageGlassCard(cornerRadius: 22)
                 .padding(.horizontal, 20)
+
+            if !viewModel.liveTranscript.isEmpty {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("認識中の内容")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                    Text(viewModel.liveTranscript)
+                        .font(.body)
+                    Button("この内容で応答") {
+                        viewModel.submitCurrentUtterance()
+                    }
+                    .buttonStyle(.bordered)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(16)
+                .signageGlassCard(cornerRadius: 18)
+                .padding(.horizontal, 20)
+            }
 
             // Transcripts Bubble Stream
             if !viewModel.transcripts.isEmpty {

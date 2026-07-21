@@ -5,51 +5,82 @@ import SwiftUI
 
 struct AISettingsSheetView: View {
     @Environment(\.dismiss) private var dismiss
+    @Binding var apiKey: String
+    let message: String?
+    let onSave: () -> Void
+    let onDelete: () -> Void
 
     var body: some View {
         NavigationStack {
             ZStack {
                 GenkanTheme.oledBackground.ignoresSafeArea()
-                
-                VStack(alignment: .leading, spacing: 20) {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Label("音声AI設定", systemImage: "sparkles")
-                            .font(.title3.weight(.bold))
-                            .foregroundStyle(GenkanTheme.aiIndigo)
 
-                        Text("この試作版は、iPhone上のApple Intelligenceを使って応答を生成します。APIキーやトークンの設定は不要です。")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                    }
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 22) {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Label("OpenRouter設定", systemImage: "sparkles")
+                                .font(.title3.weight(.bold))
+                                .foregroundStyle(GenkanTheme.aiIndigo)
+                            Text("受付の返答生成にOpenRouterの無料モデルルーターを使用します。")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
 
-                    VStack(alignment: .leading, spacing: 10) {
-                        Label("Apple Intelligence対応・有効化済みのiPhoneが必要です", systemImage: "iphone.gen3")
-                        Label("初回はマイク・音声認識の許可が必要です", systemImage: "mic.badge.plus")
-                        Label("会話は端末内モデルで処理します", systemImage: "lock.shield")
-                    }
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text("APIキー")
+                                .font(.headline)
+                            SecureField("sk-or-v1-...", text: $apiKey)
+                                .textInputAutocapitalization(.never)
+                                .autocorrectionDisabled()
+                                .textContentType(.password)
+                                .padding(14)
+                                .background(.secondary.opacity(0.12), in: RoundedRectangle(cornerRadius: 14))
+                            Text("キーはこのiPhoneのKeychainに保存され、ソースコードには書き込みません。")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
 
-                    Spacer()
+                        VStack(alignment: .leading, spacing: 10) {
+                            Label("音声認識はiPhone内で処理します", systemImage: "iphone.gen3")
+                            Label("認識された文章だけをOpenRouterへ送信します", systemImage: "network")
+                            Label("無料モデルは混雑や提供状況で応答が不安定な場合があります", systemImage: "exclamationmark.triangle")
+                        }
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
 
-                    Button {
-                        dismiss()
-                    } label: {
-                        Text("閉じる")
-                            .font(.headline)
+                        if let message {
+                            Text(message)
+                                .font(.footnote.weight(.semibold))
+                                .foregroundStyle(GenkanTheme.activeGreen)
+                        }
+
+                        Button {
+                            onSave()
+                        } label: {
+                            Text("APIキーを保存")
+                                .font(.headline)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 14)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(GenkanTheme.aiIndigo)
+                        .disabled(apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+
+                        if !apiKey.isEmpty {
+                            Button("保存したAPIキーを削除", role: .destructive) {
+                                onDelete()
+                            }
                             .frame(maxWidth: .infinity)
-                            .padding(.vertical, 14)
+                        }
                     }
-                    .buttonStyle(.borderedProminent)
-                    .tint(GenkanTheme.aiIndigo)
+                    .padding(24)
                 }
-                .padding(24)
             }
-            .navigationTitle("設定")
+            .navigationTitle("AI設定")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("閉じる") { dismiss() }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("完了") { dismiss() }
                 }
             }
         }
@@ -57,5 +88,5 @@ struct AISettingsSheetView: View {
 }
 
 #Preview {
-    AISettingsSheetView()
+    AISettingsSheetView(apiKey: .constant(""), message: nil, onSave: {}, onDelete: {})
 }

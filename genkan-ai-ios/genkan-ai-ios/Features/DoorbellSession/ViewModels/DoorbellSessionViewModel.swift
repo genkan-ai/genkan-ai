@@ -15,10 +15,15 @@ final class DoorbellSessionViewModel: ObservableObject {
     @Published private(set) var microphoneLevel: Double = 0
     @Published private(set) var conversationState: AIConversationState = .idle
     @Published private(set) var transcripts: [ConversationTranscript] = []
+    @Published private(set) var liveTranscript = ""
     @Published private(set) var lastDetection: DoorbellDetectionEvent?
     @Published private(set) var feedbackToken = 0
+    @Published var openRouterAPIKey = KeychainStore.readOpenRouterAPIKey()
+    @Published private(set) var settingsMessage: String?
 
-    var isAIConfigured: Bool { true }
+    var isAIConfigured: Bool {
+        !openRouterAPIKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
     var connectionLabel: String {
         switch connectionState {
         case .bluetoothUnavailable(let reason): reason
@@ -41,7 +46,8 @@ final class DoorbellSessionViewModel: ObservableObject {
     }
 
     var primaryActionTitle: String {
-        switch phase {
+        if !isAIConfigured { return "OpenRouter APIキーを設定してください" }
+        return switch phase {
         case .monitoring: "監視を停止"
         case .preparing: "ESP32を接続してください"
         default: "ピンポン監視を開始"
@@ -49,7 +55,7 @@ final class DoorbellSessionViewModel: ObservableObject {
     }
 
     var canStartMonitoring: Bool {
-        canPress && phase != .answering && phase != .conversation && phase != .cooldown
+        isAIConfigured && canPress && phase != .answering && phase != .conversation && phase != .cooldown
     }
 
     var canManuallyPress: Bool {
@@ -72,7 +78,7 @@ final class DoorbellSessionViewModel: ObservableObject {
     init() {
         detector = DoorbellDetectionService()
         intercom = BLEServoService()
-        conversation = FoundationConversationService()
+        conversation = OpenRouterConversationService()
         bindServices()
     }
 
@@ -158,6 +164,25 @@ final class DoorbellSessionViewModel: ObservableObject {
         conversation.speakSpeakerTest()
     }
 
+    func saveOpenRouterAPIKey() {
+        do {
+            try KeychainStore.saveOpenRouterAPIKey(openRouterAPIKey)
+            openRouterAPIKey = KeychainStore.readOpenRouterAPIKey()
+            settingsMessage = isAIConfigured ? "APIキーを安全に保存しました" : "APIキーを削除しました"
+        } catch {
+            settingsMessage = error.localizedDescription
+        }
+    }
+
+    func clearOpenRouterAPIKey() {
+        openRouterAPIKey = ""
+        saveOpenRouterAPIKey()
+    }
+
+    func submitCurrentUtterance() {
+        conversation.submitCurrentUtterance()
+    }
+
     private func bindServices() {
         intercom.devicesPublisher
             .sink { [weak self] in self?.devices = $0 }
@@ -215,6 +240,10 @@ final class DoorbellSessionViewModel: ObservableObject {
 
         conversation.transcriptsPublisher
             .sink { [weak self] in self?.transcripts = $0 }
+            .store(in: &cancellables)
+
+        conversation.liveTranscriptPublisher
+            .sink { [weak self] in self?.liveTranscript = $0 }
             .store(in: &cancellables)
     }
 

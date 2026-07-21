@@ -14,7 +14,7 @@ enum AIConversationState: Equatable {
     var label: String {
         switch self {
         case .idle: "待機中"
-        case .connecting: "AIへ接続中"
+        case .connecting: "OpenRouterを準備中"
         case .listening: "お話しください"
         case .thinking: "考えています…"
         case .speaking: "AIが応答中"
